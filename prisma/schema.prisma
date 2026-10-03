@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String
+  identifier   String?
+
+  skripsi       Skripsi?       @relation("MahasiswaSkripsi")
+  bimbingan     Skripsi[]      @relation("DosenSkripsi")
+  revisionNotes RevisionNote[]
+  guidanceLogs  GuidanceLog[]
+  stageApprovals StageApproval[]
+}
+
+model Skripsi {
+  id          Int     @id @default(autoincrement())
+  mahasiswaId Int     @unique
+  mahasiswa   User    @relation("MahasiswaSkripsi", fields: [mahasiswaId], references: [id])
+  dosenId     Int?
+  dosen       User?   @relation("DosenSkripsi", fields: [dosenId], references: [id])
+  judul       String
+  stage       String
+  stageStatus String
+
+  drafts         Draft[]
+  guidanceLogs   GuidanceLog[]
+  stageApprovals StageApproval[]
+}
+
+model Draft {
+  id         Int      @id @default(autoincrement())
+  skripsiId  Int
+  skripsi    Skripsi  @relation(fields: [skripsiId], references: [id], onDelete: Cascade)
+  bab        Int
+  version    Int
+  filePath   String
+  fileName   String
+  uploadedAt DateTime @default(now())
+
+  revisionNotes RevisionNote[]
+
+  @@unique([skripsiId, bab, version])
+}
+
+model RevisionNote {
+  id        Int      @id @default(autoincrement())
+  draftId   Int
+  draft     Draft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  dosenId   Int
+  dosen     User     @relation(fields: [dosenId], references: [id])
+  note      String
+  pageRef   String?
+  createdAt DateTime @default(now())
+}
+
+model GuidanceLog {
+  id        Int      @id @default(autoincrement())
+  skripsiId Int
+  skripsi   Skripsi  @relation(fields: [skripsiId], references: [id], onDelete: Cascade)
+  actorId   Int
+  actor     User     @relation(fields: [actorId], references: [id])
+  action    String
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model StageApproval {
+  id         Int      @id @default(autoincrement())
+  skripsiId  Int
+  skripsi    Skripsi  @relation(fields: [skripsiId], references: [id], onDelete: Cascade)
+  stage      String
+  status     String
+  approverId Int
+  approver   User     @relation(fields: [approverId], references: [id])
+  note       String?
+  createdAt  DateTime @default(now())
+}
